@@ -142,7 +142,13 @@ HTTP → BooksController → IBookService → IBookRepository / ILoanRepository 
   at the site root in Development.
 - **`SeedData` as a separate static class** — keeps `Program.cs` to composition
   only (services, middleware, seed call). Seeding is idempotent (skips when
-  books exist) with sync and async variants.
+  books exist) and deliberately **synchronous**: it runs once at startup,
+  before `app.Run()`, when there are no requests to overlap with — so `await`
+  would add ceremony with zero benefit, and the InMemory provider completes
+  synchronously under the hood anyway. The request path (controller → service
+  → repositories) stays fully async, which is where async actually matters.
+  If the provider ever moves to SQL Server/Postgres, this is the one call
+  that would gain an async twin.
 - **Scoped lifetimes** for `DbContext`, repositories and service — one instance
   per request; avoids the captive-dependency bug of sharing scoped state from
   a singleton, and lets the container dispose the context per request.
